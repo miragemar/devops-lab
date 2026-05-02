@@ -1,0 +1,17 @@
+stages:
+  - build
+  - test
+
+build:
+  stage: build
+  script:
+    - echo "🔥 Build Docker"
+    - docker build -t devops-lab .
+
+test:
+  stage: test
+  script:
+    - echo "🚀 Run контейнер"
+    - docker run -d -p 5000:5000 devops-lab
+    - sleep 5
+    - curl http://localhost:5000

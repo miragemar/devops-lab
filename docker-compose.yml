@@ -1,0 +1,37 @@
+services:
+  backend:
+    build: ./backend
+    restart: always
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  redis:
+    image: redis:7
+    restart: always
+    volumes:
+      - redis_data:/data
+    env_file:
+      - .env
+
+  nginx:
+    image: nginx:latest
+    restart: always
+    ports:
+      - "${NGINX_PORT}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      backend:
+        condition: service_healthy
+    env_file:
+      - .env
+
+volumes:
+  redis_data:
