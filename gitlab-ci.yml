@@ -1,0 +1,98 @@
+# -----------------------------
+# GitLab CI/CD Pipeline
+# -----------------------------
+
+# Етапи виконуються зверху вниз
+stages:
+  - test
+  - build
+  - push
+  - deploy
+
+# -----------------------------
+# Змінні
+# -----------------------------
+variables:
+  # Docker-in-Docker
+  DOCKER_DRIVER: overlay2
+
+  # Вимикаємо TLS для docker:dind
+  DOCKER_TLS_CERTDIR: ""
+
+  # Назва Docker образу
+  IMAGE_NAME: "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+
+# -----------------------------
+# 1. TEST
+# -----------------------------
+test:
+  stage: test
+
+  # Контейнер, всередині якого буде виконуватись Job
+  image: python:3.11
+
+  script:
+    # Встановлюємо залежності
+    - pip install -r backend/requirements.txt
+
+    # Перевіряємо синтаксис Python
+    - python -m py_compile backend/app.py
+
+  only:
+    - main
+
+# -----------------------------
+# 2. BUILD
+# -----------------------------
+build:
+  stage: build
+
+  image: docker:24
+
+  services:
+    - docker:24-dind
+
+  script:
+    # Збираємо Docker Image
+    - docker build -t $IMAGE_NAME ./backend
+
+  only:
+    - main
+
+# -----------------------------
+# 3. PUSH
+# -----------------------------
+push:
+  stage: push
+
+  image: docker:24
+
+  services:
+    - docker:24-dind
+
+  script:
+    # Логін у GitLab Registry
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+
+    # Збірка образу
+    - docker build -t $IMAGE_NAME ./backend
+
+    # Пуш у Registry
+    - docker push $IMAGE_NAME
+
+  only:
+    - main
+
+# -----------------------------
+# 4. DEPLOY
+# -----------------------------
+deploy:
+  stage: deploy
+
+  image: alpine:latest
+
+  script:
+    - echo "Deploy буде доданий пізніше"
+
+  only:
+    - main
